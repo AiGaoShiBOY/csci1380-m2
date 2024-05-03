@@ -1,5 +1,31 @@
+const {comm} = require('../local/local');
+const id = require('./id');
+// store the func in glocal:toLocal
+
 function createRPC(func) {
   // Write some code...
+  // calcu the id of func, note as pointer
+  const funcId = id.getID(func);
+  // fist store the func in toLocal
+  if (global.toLocal === undefined) {
+    throw new Error('ToLocal not initialized');
+  }
+  if (!global.toLocal.has(funcId)) {
+    global.toLocal.set(funcId, func);
+  }
+  // call rpcStub is like rpcStub(...parsedParam, cb);
+  const rpcStub = function(...args) {
+    const callback = args.pop();
+    // last param must be func
+    if (typeof callback !== 'function') {
+      throw new Error(
+          'Last param of service mothod must be a callback function',
+      );
+    }
+    let remote = {node: global.config, service: 'rpc', method: funcId};
+    comm.send(args, remote, callback);
+  };
+  return rpcStub;
 }
 
 /*
